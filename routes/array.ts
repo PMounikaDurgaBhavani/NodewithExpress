@@ -1,12 +1,12 @@
 import express, { Request, Response, NextFunction } from "express";
 const router = express.Router();
 
-const cb0 = function (req: Request, res: Response, next: NextFunction) {
+const cb0 = function (req: Request, res: Response, next: NextFunction): void {
   console.log("CB0");
   next();
 };
 
-const cb1 = function (req: Request, res: Response, next: NextFunction) {
+const cb1 = function (req: Request, res: Response, next: NextFunction): void {
   console.log("CB1");
   next();
 };
