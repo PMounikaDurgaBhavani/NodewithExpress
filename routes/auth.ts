@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import bodyParser from "body-parser";
-import jwt,{JwtPayload, VerifyErrors} from "jsonwebtoken";
+import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 dotenv.config();
@@ -10,9 +10,9 @@ router.use(bodyParser.urlencoded({ extended: true }));
 router.use(bodyParser.json());
 router.use(cookieParser());
 
-interface payLoad{
-  email:string,
-  username:string
+interface payLoad {
+  email: string;
+  username: string;
 }
 
 declare global {
@@ -23,23 +23,30 @@ declare global {
   }
 }
 
-let users: { username: string; email: string; password: string }[] = [];
+var users: { username: string; email: string; password: string }[] = [];
 
-function authenticateToken(req: Request, res: Response, next: NextFunction):void {
-  const authCookie = req.cookies["authcookie"];
-  if (authCookie == null){
-    res.status(401).send("unauthorized request");
-    return;
-  } 
-  jwt.verify(authCookie, process.env.ACCESS_TOKEN as string, (err:VerifyErrors | null, decoded: JwtPayload|string|undefined):void => {
-    if (err||!decoded||typeof decoded==='string'){
-      res.sendStatus(403);
+async function authenticateToken(req: Request, res: Response, next: NextFunction) {
+  try {
+    const authCookie = req.cookies["authcookie"];
+    if (authCookie == null) {
+      res.status(401).send("unauthorized request");
       return;
-    } 
-    let {email,username}=decoded as payLoad;
-    req.user = {email,username};
+    }
+    jwt.verify(
+      authCookie,
+      process.env.ACCESS_TOKEN as string,
+      (err, decoded) => {
+        if (err) {
+          return res.status(403).send("Unauthorized");
+        }
+        let { email, username } = decoded as payLoad;
+        req.user = { email, username };
+      }
+    );
     next();
-  });
+  } catch (error) {
+    throw error;
+  }
 }
 
 router.get("/me", authenticateToken, (req: Request, res: Response) => {
@@ -47,7 +54,7 @@ router.get("/me", authenticateToken, (req: Request, res: Response) => {
   console.log(users);
 });
 
-router.post("/register", (req: Request, res: Response):void => {
+router.post("/register", (req: Request, res: Response) => {
   const { email, username, password } = req.body;
   let check = users.find((ele) => ele.email == email);
   if (check) {
@@ -65,8 +72,8 @@ router.post("/register", (req: Request, res: Response):void => {
   console.log(users);
 });
 
-router.post("/login", (req: Request, res: Response):void => {
-  const { username ,password} = req.body;
+router.post("/login", (req: Request, res: Response): void => {
+  const { username, password } = req.body;
 
   let check = users.find((ele) => ele.username === username);
 
@@ -74,7 +81,7 @@ router.post("/login", (req: Request, res: Response):void => {
     res.sendStatus(403);
     return;
   }
-  if(check.password!==password){
+  if (check.password !== password) {
     res.status(401).send("Invalid Password");
     return;
   }
@@ -83,7 +90,6 @@ router.post("/login", (req: Request, res: Response):void => {
   res.cookie("authcookie", token, { maxAge: 900000, httpOnly: true });
   res.status(200).json({ message: "User Logged in successfully", token });
   console.log(users);
-  
 });
 
 export default router;

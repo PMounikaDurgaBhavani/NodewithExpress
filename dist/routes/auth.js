@@ -21,7 +21,7 @@ function authenticateToken(req, res, next) {
         return;
     }
     jsonwebtoken_1.default.verify(authCookie, process.env.ACCESS_TOKEN, (err, decoded) => {
-        if (err || !decoded || typeof decoded === 'string') {
+        if (err || !decoded || typeof decoded === "string") {
             res.sendStatus(403);
             return;
         }
@@ -32,6 +32,7 @@ function authenticateToken(req, res, next) {
 }
 router.get("/me", authenticateToken, (req, res) => {
     res.json(req.user);
+    console.log(users);
 });
 router.post("/register", (req, res) => {
     const { email, username, password } = req.body;
@@ -47,10 +48,14 @@ router.post("/register", (req, res) => {
     console.log(users);
 });
 router.post("/login", (req, res) => {
-    const { username } = req.body;
+    const { username, password } = req.body;
     let check = users.find((ele) => ele.username === username);
     if (!check) {
-        res.sendStatus(401);
+        res.sendStatus(403);
+        return;
+    }
+    if (check.password !== password) {
+        res.status(401).send("Invalid Password");
         return;
     }
     const token = jsonwebtoken_1.default.sign({ username }, process.env.ACCESS_TOKEN);
