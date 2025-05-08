@@ -13,15 +13,20 @@ const router = express_1.default.Router();
 router.use(body_parser_1.default.urlencoded({ extended: true }));
 router.use(body_parser_1.default.json());
 router.use((0, cookie_parser_1.default)());
-var users = [];
+let users = [];
 function authenticateToken(req, res, next) {
     const authCookie = req.cookies["authcookie"];
-    if (authCookie == null)
-        return res.status(401).send("unauthorized request");
-    jsonwebtoken_1.default.verify(authCookie, process.env.ACCESS_TOKEN, (err, user) => {
-        if (err)
-            return res.sendStatus(403);
-        req.user = user;
+    if (authCookie == null) {
+        res.status(401).send("unauthorized request");
+        return;
+    }
+    jsonwebtoken_1.default.verify(authCookie, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err || !decoded || typeof decoded === 'string') {
+            res.sendStatus(403);
+            return;
+        }
+        let { email, username } = decoded;
+        req.user = { email, username };
         next();
     });
 }
@@ -30,24 +35,27 @@ router.get("/me", authenticateToken, (req, res) => {
 });
 router.post("/register", (req, res) => {
     const { email, username, password } = req.body;
-    let check = users.find(ele => ele.email == email);
+    let check = users.find((ele) => ele.email == email);
     if (check) {
-        return res.status(400).send("Already Exits");
+        res.status(400).send("Already Exits");
+        return;
     }
     const token = jsonwebtoken_1.default.sign({ email, username }, process.env.ACCESS_TOKEN);
     users.push({ email, username, password });
     res.cookie("authcookie", token, { maxAge: 900000, httpOnly: true });
     res.status(200).json({ message: "User Registered Successfully", token });
+    console.log(users);
 });
-console.log(users);
 router.post("/login", (req, res) => {
     const { username } = req.body;
     let check = users.find((ele) => ele.username === username);
     if (!check) {
-        return res.sendStatus(401);
+        res.sendStatus(401);
+        return;
     }
     const token = jsonwebtoken_1.default.sign({ username }, process.env.ACCESS_TOKEN);
     res.cookie("authcookie", token, { maxAge: 900000, httpOnly: true });
     res.status(200).json({ message: "User Logged in successfully", token });
+    console.log(users);
 });
 exports.default = router;
